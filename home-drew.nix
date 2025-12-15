@@ -26,20 +26,16 @@
 
   # User packages
   home.packages = with pkgs; [
-    firefox
+    google-chrome
     vlc
     libreoffice
     gimp
-    inkscape
     
-    # Educational software
-    gcompris
-    tuxpaint
-    stellarium
-    
-    # Development tools
+    # Development tools (admin only)
+    vscode
     python3
     nodejs
+    git
   ];
 
   # OneDrive systemd service
@@ -63,13 +59,7 @@
   # Create OneDrive mount point
   home.file."OneDrive/.keep".text = "";
 
-  # VS Code settings for remote development
-  programs.vscode = {
-    enable = true;
-    extensions = with pkgs.vscode-extensions; [
-      ms-vscode-remote.remote-ssh
-    ];
-  };
+  # VS Code with extensions (installed via home.packages above)
 
   # PrismLauncher configuration - point to OneDrive
   # Calculate RAM allocation: use 50% of system RAM for max, 25% for min

@@ -26,20 +26,10 @@
 
   # User packages
   home.packages = with pkgs; [
-    firefox
+    google-chrome
     vlc
     libreoffice
     gimp
-    inkscape
-    
-    # Educational software
-    gcompris
-    tuxpaint
-    stellarium
-    
-    # Development tools
-    python3
-    nodejs
   ];
 
   # OneDrive systemd service
@@ -63,10 +53,7 @@
   # Create OneDrive mount point
   home.file."OneDrive/.keep".text = "";
 
-  # VS Code settings
-  programs.vscode = {
-    enable = true;
-  };
+
 
   # PrismLauncher configuration - point to OneDrive
   # RAM allocation calculated dynamically in activation script
