@@ -41,6 +41,11 @@ nix-shell -p azure-cli git --run "
   az keyvault secret show --vault-name ${VAULT_NAME} --name emily-ssh-authorized-keys --query value -o tsv > /tmp/emily-ssh-keys
   az keyvault secret show --vault-name ${VAULT_NAME} --name bella-ssh-authorized-keys --query value -o tsv > /tmp/bella-ssh-keys
   
+  echo 'Fetching user passwords...'
+  az keyvault secret show --vault-name ${VAULT_NAME} --name drew-password --query value -o tsv > /tmp/drew-password
+  az keyvault secret show --vault-name ${VAULT_NAME} --name emily-password --query value -o tsv > /tmp/emily-password
+  az keyvault secret show --vault-name ${VAULT_NAME} --name bella-password --query value -o tsv > /tmp/bella-password
+  
   # Verify critical files
   if [ ! -s /tmp/drew-rclone.conf ]; then
     echo 'ERROR: Failed to fetch drew-rclone-config from Key Vault'
@@ -67,6 +72,7 @@ fi
 echo ""
 echo "Step 5: Installing secrets for NixOS configuration..."
 mkdir -p /tmp/nixos-secrets
+mkdir -p /tmp/nixos-passwords
 
 # Copy rclone configs
 cp /tmp/drew-rclone.conf /tmp/nixos-secrets/drew-rclone.conf
@@ -78,13 +84,20 @@ cp /tmp/drew-ssh-keys /tmp/nixos-secrets/drew-ssh-authorized-keys
 cp /tmp/emily-ssh-keys /tmp/nixos-secrets/emily-ssh-authorized-keys
 cp /tmp/bella-ssh-keys /tmp/nixos-secrets/bella-ssh-authorized-keys
 
+# Save passwords for later (after users are created)
+cp /tmp/drew-password /tmp/nixos-passwords/
+cp /tmp/emily-password /tmp/nixos-passwords/
+cp /tmp/bella-password /tmp/nixos-passwords/
+
 # Set permissions
 chmod 600 /tmp/nixos-secrets/*-rclone.conf
 chmod 644 /tmp/nixos-secrets/*-ssh-authorized-keys
+chmod 600 /tmp/nixos-passwords/*
 
 # Clean up temp files from Key Vault
 rm -f /tmp/drew-rclone.conf /tmp/emily-rclone.conf /tmp/bella-rclone.conf
 rm -f /tmp/drew-ssh-keys /tmp/emily-ssh-keys /tmp/bella-ssh-keys
+rm -f /tmp/drew-password /tmp/emily-password /tmp/bella-password
 
 echo ""
 echo "Step 6: Applying NixOS configuration..."
@@ -93,9 +106,36 @@ cd /etc/nixos
 nixos-rebuild switch --flake ".#nix-kids-laptop"
 
 echo ""
+echo "Step 7: Setting user passwords..."
+
+# Now that users exist, set their passwords
+echo "drew:$(cat /tmp/nixos-passwords/drew-password)" | chpasswd
+echo "emily:$(cat /tmp/nixos-passwords/emily-password)" | chpasswd
+echo "bella:$(cat /tmp/nixos-passwords/bella-password)" | chpasswd
+
+echo "Passwords set for all users"
+
+# Clean up password files
+rm -rf /tmp/nixos-passwords
+
+echo ""
 echo "========================================"
 echo "Bootstrap Complete!"
 echo "========================================"
+echo ""
+echo "System configured with:"
+echo "  - 3 user accounts (Drew, Emily, Bella)"
+echo "  - Passwords set from Key Vault"
+echo "  - SSH access configured"
+echo "  - OneDrive rclone configs installed"
+echo "  - Gaming software (Steam, Minecraft)"
+echo "  - Development tools"
+echo ""
+echo "User passwords retrieved from Key Vault."
+echo "You can view them anytime with:"
+echo "  az keyvault secret show --vault-name nix-kids-laptop --name drew-password --query value -o tsv"
+echo "  az keyvault secret show --vault-name nix-kids-laptop --name emily-password --query value -o tsv"
+echo "  az keyvault secret show --vault-name nix-kids-laptop --name bella-password --query value -o tsv"
 echo ""
 echo "Next steps:"
 echo "1. Reboot the system: sudo reboot"
