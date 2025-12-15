@@ -29,10 +29,14 @@ A fully portable NixOS configuration for children's laptops with remote administ
    ```bash
    curl -L https://raw.githubusercontent.com/drewmacphee/nix-kids-laptop/main/bootstrap.sh | sudo bash
    ```
+   
+   - Enter a hostname when prompted (e.g., `bazztop`, `emily-laptop`)
+   - The script works for any machine using this configuration
 
 3. **Login with Microsoft Account**
    - Follow the device code prompt
    - Login at https://microsoft.com/devicelogin
+   - Complete MFA authentication
    - Script automatically fetches secrets and configures system
 
 4. **Reboot**

@@ -9,8 +9,12 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Networking
-  networking.hostName = "bazztop";
+  # Networking - hostname will be set during bootstrap
+  # Read from /etc/hostname if it exists, otherwise use default
+  networking.hostName = 
+    if builtins.pathExists /etc/hostname
+    then builtins.readFile /etc/hostname
+    else "bazztop";
   networking.networkmanager.enable = true;
   
   # Automatic WiFi connection from secrets

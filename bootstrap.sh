@@ -5,9 +5,8 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/drewmacphee/nix-kids-laptop"
-VAULT_NAME="bazztop"
+VAULT_NAME="nix-kids-laptop"
 SECRET_NAME="age-identity"
-HOSTNAME="bazztop"
 TENANT_ID="6e2722da-5af4-4c0f-878a-42db4d068c86"
 
 # Error handler
@@ -71,6 +70,15 @@ echo "NixOS Kids Laptop Bootstrap"
 echo "========================================"
 echo ""
 
+# Prompt for hostname
+read -p "Enter hostname for this machine (e.g., bazztop, emily-laptop): " HOSTNAME
+if [ -z "$HOSTNAME" ]; then
+  echo "ERROR: Hostname cannot be empty"
+  exit 1
+fi
+echo "✓ Using hostname: $HOSTNAME"
+echo ""
+
 echo "Step 1: Installing temporary dependencies..."
 nix-shell -p azure-cli git --run bash <<'AZURE_LOGIN'
 set -euo pipefail
@@ -97,7 +105,7 @@ echo "✓ Azure login successful"
 echo ''
 echo 'Step 4: Fetching secrets from Azure Key Vault...'
 
-VAULT_NAME="bazztop"
+VAULT_NAME="nix-kids-laptop"
 
 # Fetch all secrets with retry logic
 echo 'Fetching rclone configs...'
@@ -229,6 +237,13 @@ cd /etc/nixos || {
   exit 1
 }
 
+# Set the hostname in /etc/hostname for NixOS to read
+echo "Setting hostname to: $HOSTNAME"
+echo -n "$HOSTNAME" > /etc/hostname || {
+  echo "ERROR: Failed to write /etc/hostname"
+  exit 1
+}
+
 # Copy secrets to /etc/nixos for the build
 echo "Copying secrets for NixOS build..."
 mkdir -p /etc/nixos/secrets || {
@@ -243,12 +258,12 @@ cp -r /tmp/nixos-secrets/* /etc/nixos/secrets/ || {
 echo "Building NixOS configuration..."
 echo "This may take 10-30 minutes depending on internet speed..."
 
-if ! nixos-rebuild switch --flake ".#nix-kids-laptop"; then
+if ! nixos-rebuild switch --flake ".#$HOSTNAME"; then
   echo ""
   echo "ERROR: nixos-rebuild failed!"
   echo "Check the error messages above for details."
   echo "Secrets are preserved in /tmp/nixos-secrets and /tmp/nixos-passwords"
-  echo "You can retry with: cd /etc/nixos && nixos-rebuild switch --flake '.#nix-kids-laptop'"
+  echo "You can retry with: cd /etc/nixos && nixos-rebuild switch --flake '.#$HOSTNAME'"
   exit 1
 fi
 
