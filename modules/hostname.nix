@@ -3,5 +3,5 @@
 { config, pkgs, ... }:
 
 {
-  networking.hostName = "bazztop";
+  networking.hostName = "nix-" + builtins.substring 0 4 (builtins.hashString "sha256" (toString builtins.currentTime));
 }
