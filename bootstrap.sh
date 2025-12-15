@@ -71,54 +71,19 @@ echo "NixOS Kids Laptop Bootstrap"
 echo "========================================"
 echo ""
 
-echo "Step 1: Checking prerequisites..."
-
-# Detect available browser
-BROWSER=""
-for browser in firefox chromium google-chrome-stable; do
-  if command -v $browser &> /dev/null; then
-    BROWSER=$browser
-    echo "✓ Found browser: $BROWSER"
-    break
-  fi
-done
-
-if [ -z "$BROWSER" ]; then
-  echo "WARNING: No browser found. Installing firefox temporarily..."
-  TEMP_PACKAGES="azure-cli git firefox"
-else
-  TEMP_PACKAGES="azure-cli git"
-fi
-
-echo "Step 2: Installing temporary dependencies..."
-nix-shell -p $TEMP_PACKAGES --run bash <<'AZURE_LOGIN'
+echo "Step 1: Installing temporary dependencies..."
+nix-shell -p azure-cli git --run bash <<'AZURE_LOGIN'
 set -euo pipefail
 
 echo 'Step 3: Authenticating with Azure...'
-echo 'A browser window will open for Microsoft login with MFA'
+echo 'You will need to visit https://microsoft.com/devicelogin'
 echo ''
 
-# Detect browser again in nix-shell context and set args
-BROWSER_CMD=""
-for browser in firefox chromium google-chrome-stable; do
-  if command -v $browser &> /dev/null; then
-    if [[ "$browser" == "google-chrome-stable" ]] || [[ "$browser" == "chromium" ]]; then
-      # Chrome/Chromium needs --no-sandbox when running as root
-      BROWSER_CMD="$browser --no-sandbox"
-    else
-      BROWSER_CMD="$browser"
-    fi
-    export BROWSER="$BROWSER_CMD"
-    echo "Using browser: $BROWSER_CMD"
-    break
-  fi
-done
-
-# Azure login with browser-based auth
-if ! az login --tenant 6e2722da-5af4-4c0f-878a-42db4d068c86 2>&1; then
+# Use device code flow - more reliable for bootstrap scenarios
+if ! az login --tenant 6e2722da-5af4-4c0f-878a-42db4d068c86 --use-device-code; then
   echo ''
   echo 'ERROR: Azure login failed. Please ensure:'
-  echo '  - You have a browser available'
+  echo '  - You completed the device code authentication'
   echo '  - You can complete MFA authentication'
   echo '  - You have access to tenant 6e2722da-5af4-4c0f-878a-42db4d068c86'
   exit 1
