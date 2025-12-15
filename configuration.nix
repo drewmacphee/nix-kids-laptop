@@ -13,6 +13,30 @@
   networking.hostName = "nix-kids-laptop";
   networking.networkmanager.enable = true;
   
+  # Automatic WiFi connection from secrets
+  networking.networkmanager.ensureProfiles = {
+    environmentFiles = [ "/etc/nixos/secrets/wifi-env" ];
+    profiles = {
+      home = {
+        connection = {
+          id = "Home WiFi";
+          type = "wifi";
+          autoconnect = true;
+        };
+        wifi = {
+          ssid = "$WIFI_SSID";
+          mode = "infrastructure";
+        };
+        wifi-security = {
+          key-mgmt = "wpa-psk";
+          psk = "$WIFI_PASSWORD";
+        };
+        ipv4.method = "auto";
+        ipv6.method = "auto";
+      };
+    };
+  };
+  
   # Enable mDNS for LAN discovery (Minecraft, etc.)
   services.avahi = {
     enable = true;

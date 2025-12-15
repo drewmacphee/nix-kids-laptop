@@ -100,6 +100,10 @@ nix-shell -p azure-cli git --run "
   retry_command az keyvault secret show --vault-name ${VAULT_NAME} --name emily-password --query value -o tsv > /tmp/emily-password
   retry_command az keyvault secret show --vault-name ${VAULT_NAME} --name bella-password --query value -o tsv > /tmp/bella-password
   
+  echo 'Fetching WiFi credentials...'
+  retry_command az keyvault secret show --vault-name ${VAULT_NAME} --name wifi-ssid --query value -o tsv > /tmp/wifi-ssid
+  retry_command az keyvault secret show --vault-name ${VAULT_NAME} --name wifi-password --query value -o tsv > /tmp/wifi-password
+  
   echo ''
   echo 'Validating fetched secrets...'
   validate_secret /tmp/drew-rclone.conf 'Drew rclone config'
@@ -111,6 +115,8 @@ nix-shell -p azure-cli git --run "
   validate_secret /tmp/drew-password 'Drew password'
   validate_secret /tmp/emily-password 'Emily password'
   validate_secret /tmp/bella-password 'Bella password'
+  validate_secret /tmp/wifi-ssid 'WiFi SSID'
+  validate_secret /tmp/wifi-password 'WiFi password'
   
   echo ''
   echo '✓ All secrets retrieved and validated successfully!'
@@ -209,6 +215,12 @@ cp /tmp/drew-password /tmp/nixos-passwords/ || exit 1
 cp /tmp/emily-password /tmp/nixos-passwords/ || exit 1
 cp /tmp/bella-password /tmp/nixos-passwords/ || exit 1
 
+# Create WiFi environment file
+echo "Creating WiFi configuration..."
+echo "WIFI_SSID=$(cat /tmp/wifi-ssid)" > /tmp/nixos-secrets/wifi-env || exit 1
+echo "WIFI_PASSWORD=$(cat /tmp/wifi-password)" >> /tmp/nixos-secrets/wifi-env || exit 1
+chmod 600 /tmp/nixos-secrets/wifi-env || exit 1
+
 # Set permissions
 echo "Setting file permissions..."
 chmod 600 /tmp/nixos-secrets/*-rclone.conf || exit 1
@@ -219,6 +231,7 @@ chmod 600 /tmp/nixos-passwords/* || exit 1
 echo "Verifying secrets installation..."
 [ -f "/tmp/nixos-secrets/drew-rclone.conf" ] || { echo "ERROR: drew-rclone.conf missing"; exit 1; }
 [ -f "/tmp/nixos-secrets/drew-ssh-authorized-keys" ] || { echo "ERROR: drew SSH keys missing"; exit 1; }
+[ -f "/tmp/nixos-secrets/wifi-env" ] || { echo "ERROR: wifi-env missing"; exit 1; }
 echo "✓ All secrets installed to /tmp/nixos-secrets"
 
 # Clean up temp files from Key Vault
@@ -226,6 +239,7 @@ echo "Cleaning up temporary files..."
 rm -f /tmp/drew-rclone.conf /tmp/emily-rclone.conf /tmp/bella-rclone.conf
 rm -f /tmp/drew-ssh-keys /tmp/emily-ssh-keys /tmp/bella-ssh-keys
 rm -f /tmp/drew-password /tmp/emily-password /tmp/bella-password
+rm -f /tmp/wifi-ssid /tmp/wifi-password
 
 echo ""
 echo "Step 6: Applying NixOS configuration..."
