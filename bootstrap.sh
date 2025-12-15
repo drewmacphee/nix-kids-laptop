@@ -70,9 +70,14 @@ echo "NixOS Kids Laptop Bootstrap"
 echo "========================================"
 echo ""
 
-# Prompt for hostname
-echo "Enter hostname for this machine (e.g., bazztop, emily-laptop):"
+# Prompt for hostname with random default
+RANDOM_SUFFIX=$(head -c 100 /dev/urandom | tr -dc 'a-z0-9' | head -c 4)
+DEFAULT_HOSTNAME="nix-${RANDOM_SUFFIX}"
+
+echo "Enter hostname for this machine [${DEFAULT_HOSTNAME}]:"
 read -r HOSTNAME </dev/tty
+HOSTNAME=${HOSTNAME:-$DEFAULT_HOSTNAME}
+
 if [ -z "$HOSTNAME" ]; then
   echo "ERROR: Hostname cannot be empty"
   exit 1
