@@ -3,8 +3,8 @@ result
 result-*
 
 # Hardware config (machine-specific, generated during install)
-# Uncomment if you want to version control it:
-# hardware-configuration.nix
+# This MUST stay local - each machine has different hardware!
+hardware-configuration.nix
 
 # Secrets directory (fetched from Key Vault at runtime)
 secrets/

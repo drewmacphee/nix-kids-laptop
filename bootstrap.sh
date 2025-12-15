@@ -57,6 +57,13 @@ nix-shell -p azure-cli git --run "
 
 echo ""
 echo "Step 4: Cloning configuration repository..."
+
+# Preserve the real hardware-configuration.nix
+if [ -f "/etc/nixos/hardware-configuration.nix" ]; then
+  echo "Backing up real hardware-configuration.nix..."
+  cp /etc/nixos/hardware-configuration.nix /tmp/hardware-configuration.nix.real
+fi
+
 if [ -d "/etc/nixos/.git" ]; then
   echo "Config already exists, pulling latest..."
   cd /etc/nixos
@@ -67,6 +74,16 @@ else
     mv /etc/nixos /etc/nixos.backup.$(date +%Y%m%d-%H%M%S)
   fi
   git clone "${REPO_URL}" /etc/nixos
+fi
+
+# Restore the real hardware-configuration.nix
+if [ -f "/tmp/hardware-configuration.nix.real" ]; then
+  echo "Restoring real hardware-configuration.nix..."
+  cp /tmp/hardware-configuration.nix.real /etc/nixos/hardware-configuration.nix
+  rm /tmp/hardware-configuration.nix.real
+else
+  echo "WARNING: No hardware-configuration.nix found! System may not boot correctly."
+  echo "You may need to run: nixos-generate-config --show-hardware-config > /etc/nixos/hardware-configuration.nix"
 fi
 
 echo ""
