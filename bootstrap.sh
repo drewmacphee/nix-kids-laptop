@@ -82,7 +82,7 @@ max_attempts=3
 attempt=1
 
 while [ $attempt -le $max_attempts ]; do
-  if az login --use-device-code; then
+  if az login --tenant 6e2722da-5af4-4c0f-878a-42db4d068c86 --use-device-code; then
     echo "✓ Azure login successful"
     break
   fi
