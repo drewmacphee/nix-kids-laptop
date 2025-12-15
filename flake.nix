@@ -12,7 +12,7 @@
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
-    nixosConfigurations.kids-laptop = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.nix-kids-laptop = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [

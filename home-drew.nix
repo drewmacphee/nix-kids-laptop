@@ -20,7 +20,7 @@
     enable = true;
     shellAliases = {
       ll = "ls -la";
-      update = "sudo nixos-rebuild switch --flake /etc/nixos#kids-laptop";
+      update = "sudo nixos-rebuild switch --flake /etc/nixos#nix-kids-laptop";
     };
   };
 

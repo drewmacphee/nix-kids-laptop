@@ -7,7 +7,7 @@ set -euo pipefail
 REPO_URL="https://github.com/drewmacphee/nix-kids-laptop"
 VAULT_NAME="nix-kids-laptop"
 SECRET_NAME="age-identity"
-HOSTNAME="kids-laptop"
+HOSTNAME="nix-kids-laptop"
 
 echo "========================================"
 echo "NixOS Kids Laptop Bootstrap"
@@ -90,7 +90,7 @@ echo ""
 echo "Step 6: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
 cd /etc/nixos
-nixos-rebuild switch --flake ".#${HOSTNAME}"
+nixos-rebuild switch --flake ".#nix-kids-laptop"
 
 echo ""
 echo "========================================"

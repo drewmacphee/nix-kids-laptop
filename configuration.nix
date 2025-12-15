@@ -10,8 +10,19 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Networking
-  networking.hostName = "kids-laptop";
+  networking.hostName = "nix-kids-laptop";
   networking.networkmanager.enable = true;
+  
+  # Enable mDNS for LAN discovery (Minecraft, etc.)
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+  };
 
   # Timezone and locale
   time.timeZone = "America/New_York";
@@ -47,7 +58,18 @@
   # Firewall
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 ]; # SSH
+    allowedTCPPorts = [ 
+      22      # SSH
+      25565   # Minecraft server default
+    ];
+    allowedUDPPorts = [
+      5353    # mDNS for LAN discovery
+      24454   # Minecraft LAN discovery
+    ];
+    # Allow LAN discovery broadcasts
+    allowedUDPPortRanges = [
+      { from = 24454; to = 24454; }  # Minecraft LAN
+    ];
   };
 
   # User accounts
@@ -132,7 +154,7 @@
   # Auto-upgrade
   system.autoUpgrade = {
     enable = true;
-    flake = "github:drewmacphee/nix-kids-laptop#kids-laptop";
+    flake = "github:drewmacphee/nix-kids-laptop#nix-kids-laptop";
     allowReboot = false;
   };
 
