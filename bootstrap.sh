@@ -71,23 +71,22 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo "Step 1: Installing temporary dependencies..."
-nix-shell -p azure-cli git --run bash <<'AZURE_LOGIN'
+nix-shell -p azure-cli git firefox --run bash <<'AZURE_LOGIN'
 set -euo pipefail
 
 echo 'Step 2: Authenticating with Azure...'
-echo 'Using device code flow for authentication'
-echo 'You will need to:'
-echo '  1. Open the URL shown below in a browser (on any device)'
-echo '  2. Enter the code provided'
-echo '  3. Complete MFA authentication'
+echo 'A browser window will open for Microsoft login with MFA'
 echo ''
 
-# Azure login with device code flow (works without browser on target machine)
-if ! az login --tenant 6e2722da-5af4-4c0f-878a-42db4d068c86 --use-device-code; then
+# Set browser for xdg-open
+export BROWSER=firefox
+
+# Azure login with browser-based auth
+if ! az login --tenant 6e2722da-5af4-4c0f-878a-42db4d068c86; then
   echo ''
   echo 'ERROR: Azure login failed. Please ensure:'
-  echo '  - You completed the device code authentication'
-  echo '  - You completed MFA authentication'
+  echo '  - You have a browser available'
+  echo '  - You can complete MFA authentication'
   echo '  - You have access to tenant 6e2722da-5af4-4c0f-878a-42db4d068c86'
   exit 1
 fi
