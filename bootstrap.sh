@@ -243,11 +243,10 @@ cd /etc/nixos || {
   exit 1
 }
 
-# Set the hostname in /etc/hostname for NixOS to read
+# Set the hostname using NixOS-friendly method
 echo "Setting hostname to: $HOSTNAME"
-echo -n "$HOSTNAME" > /etc/hostname || {
-  echo "ERROR: Failed to write /etc/hostname"
-  exit 1
+hostnamectl set-hostname "$HOSTNAME" 2>/dev/null || {
+  echo "WARNING: Could not set hostname with hostnamectl (will be set during nixos-rebuild)"
 }
 
 # Copy secrets to /etc/nixos for the build
