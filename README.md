@@ -44,13 +44,13 @@ Done! OneDrive will sync on first login.
 
 ## Documentation
 
-- **[docs/SETUP-SIMPLIFIED.md](docs/SETUP-SIMPLIFIED.md)** - Step-by-step setup guide
+- **[docs/SETUP-SIMPLIFIED.md](docs/SETUP-SIMPLIFIED.md)** - Complete setup walkthrough
 - **[docs/KEYVAULT-SETUP-GUIDE.md](docs/KEYVAULT-SETUP-GUIDE.md)** - Azure Key Vault configuration
 - **[docs/ONEDRIVE-SETUP.md](docs/ONEDRIVE-SETUP.md)** - OneDrive integration guide
 - **[docs/MINECRAFT-SETUP-GUIDE.md](docs/MINECRAFT-SETUP-GUIDE.md)** - Minecraft/PrismLauncher config
 - **[docs/MINECRAFT-LAN-GUIDE.md](docs/MINECRAFT-LAN-GUIDE.md)** - LAN multiplayer setup
-- **[docs/PRIVATE-REPO-GUIDE.md](docs/PRIVATE-REPO-GUIDE.md)** - Making the repo private
-- **[STATUS.md](STATUS.md)** - Current project status
+- **[docs/WIFI-SETUP.md](docs/WIFI-SETUP.md)** - WiFi automation
+- **[docs/UPDATES-AND-MAINTENANCE.md](docs/UPDATES-AND-MAINTENANCE.md)** - System maintenance
 
 ## Setup Requirements
 
@@ -97,31 +97,40 @@ All secrets are stored in Azure Key Vault. No local encryption needed!
 - `drew-ssh-authorized-keys` - SSH keys for Drew
 - `emily-ssh-authorized-keys` - SSH keys for Emily
 - `bella-ssh-authorized-keys` - SSH keys for Bella
+- `drew-password` - Drew's login password
+- `emily-password` - Emily's login password
+- `bella-password` - Bella's login password
 
-See [SETUP.md](SETUP.md) for detailed setup instructions.
+See [docs/SETUP-SIMPLIFIED.md](docs/SETUP-SIMPLIFIED.md) for detailed setup instructions.
 
 ## Repository Structure
 
 ```
 .
-├── bootstrap.sh                 # One-shot install script
-├── flake.nix                    # Nix flake definition
-├── configuration.nix            # System configuration
-├── home-drew.nix                # Drew's home-manager config
-├── home-emily.nix               # Emily's home-manager config
-├── home-bella.nix               # Bella's home-manager config
-├── hardware-configuration.nix   # Hardware-specific config
-├── secrets/                     # Runtime secrets (not in git)
-│   ├── drew-ssh-authorized-keys
-│   ├── emily-ssh-authorized-keys
-│   ├── bella-ssh-authorized-keys
-│   ├── drew-rclone.conf
-│   ├── emily-rclone.conf
-│   └── bella-rclone.conf
-├── README.md
-├── SETUP.md
-├── ONEDRIVE-SETUP.md
-└── KEYVAULT-SECRETS.md
+├── bootstrap.sh                    # One-shot install script
+├── flake.nix                       # Nix flake definition
+├── flake.lock                      # Pinned dependencies
+├── configuration.nix               # System configuration
+├── home-drew.nix                   # Drew's home-manager config (28 lines!)
+├── home-emily.nix                  # Emily's home-manager config (27 lines!)
+├── home-bella.nix                  # Bella's home-manager config (27 lines!)
+├── hardware-configuration.nix.template  # Template (replaced at bootstrap)
+├── modules/                        # Shared configuration modules
+│   ├── common.nix                  # Git, Bash, home-manager
+│   ├── onedrive.nix                # OneDrive service
+│   ├── minecraft.nix               # Minecraft setup
+│   └── packages/
+│       ├── base.nix                # Common apps
+│       └── dev.nix                 # Dev tools
+├── docs/                           # Documentation
+│   ├── SETUP-SIMPLIFIED.md
+│   ├── KEYVAULT-SETUP-GUIDE.md
+│   ├── ONEDRIVE-SETUP.md
+│   ├── MINECRAFT-SETUP-GUIDE.md
+│   ├── MINECRAFT-LAN-GUIDE.md
+│   ├── WIFI-SETUP.md
+│   └── UPDATES-AND-MAINTENANCE.md
+└── README.md                       # This file
 ```
 
 ## Remote Administration
@@ -142,20 +151,21 @@ Once installed, connect via VS Code Remote SSH:
 
 From remote machine:
 ```bash
-ssh drew@kids-laptop
+ssh drew@nix-kids-laptop
 cd /etc/nixos
 git pull
-sudo nixos-rebuild switch --flake .#kids-laptop
+sudo nixos-rebuild switch --flake .#nix-kids-laptop
 ```
 
-Or set up automatic updates (already configured in `configuration.nix`).
+Automatic updates are configured to run daily at 3 AM. See [docs/UPDATES-AND-MAINTENANCE.md](docs/UPDATES-AND-MAINTENANCE.md) for details.
 
 ## Customization
 
-- **Add packages**: Edit `home.nix` or `configuration.nix`
+- **Add packages**: Edit `modules/packages/base.nix` or `configuration.nix`
 - **Change desktop environment**: Modify `services.xserver` in `configuration.nix`
-- **Add secrets**: Create new `.age` files and reference in `secrets.nix`
-- **Timezone/locale**: Update `configuration.nix`
+- **Add secrets**: Store in Azure Key Vault, fetch in `bootstrap.sh`
+- **Timezone**: Auto-detected via geoclue2 (configured in `configuration.nix`)
+- **Add user**: Create new `home-username.nix` (28 lines - see existing as template)
 
 ## Troubleshooting
 
@@ -174,13 +184,16 @@ Or set up automatic updates (already configured in `configuration.nix`).
 - Check `systemctl status sshd`
 - Verify SSH keys are correctly deployed
 
-## TODO
+## Features Highlights
 
-- [ ] Add disk encryption support (LUKS)
-- [ ] Implement automatic backup schedule
-- [ ] Add parental control profiles
-- [ ] Create custom NixOS ISO with bootstrap embedded
-- [ ] Add monitoring/alerting for system health
+✅ **Modular Configuration**: 80% less code through shared modules  
+✅ **Dynamic RAM**: Minecraft allocates RAM based on system memory  
+✅ **Automatic Updates**: Daily system updates at 3 AM  
+✅ **LAN Discovery**: mDNS for Minecraft multiplayer  
+✅ **WiFi Automation**: Pre-configured WiFi in bootstrap  
+✅ **SSH Hardening**: Key-only auth, passwords disabled for remote access  
+✅ **Per-User OneDrive**: Individual cloud storage with automatic mounting  
+✅ **Gaming Ready**: Steam, Proton, PrismLauncher with OneDrive sync
 
 ## License
 
