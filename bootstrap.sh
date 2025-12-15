@@ -98,11 +98,18 @@ echo 'Step 3: Authenticating with Azure...'
 echo 'A browser window will open for Microsoft login with MFA'
 echo ''
 
-# Detect browser again in nix-shell context
+# Detect browser again in nix-shell context and set args
+BROWSER_CMD=""
 for browser in firefox chromium google-chrome-stable; do
   if command -v $browser &> /dev/null; then
-    export BROWSER=$browser
-    echo "Using browser: $BROWSER"
+    if [[ "$browser" == "google-chrome-stable" ]] || [[ "$browser" == "chromium" ]]; then
+      # Chrome/Chromium needs --no-sandbox when running as root
+      BROWSER_CMD="$browser --no-sandbox"
+    else
+      BROWSER_CMD="$browser"
+    fi
+    export BROWSER="$BROWSER_CMD"
+    echo "Using browser: $BROWSER_CMD"
     break
   fi
 done
