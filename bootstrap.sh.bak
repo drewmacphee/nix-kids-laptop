@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/drewmacphee/nix-systems"
-VAULT_NAME="nix-systems-kv"
+REPO_URL="https://github.com/drewmacphee/nix-kids-laptop"
+VAULT_NAME="nix-kids-laptop"
+SECRET_NAME="age-identity"
 TENANT_ID="6e2722da-5af4-4c0f-878a-42db4d068c86"
-CREDS_DIR="/var/lib/systemd/credential.secret"
 
 # Error handler
 trap 'echo "ERROR: Bootstrap failed at line $LINENO. Check output above for details." >&2; exit 1' ERR
@@ -196,43 +196,58 @@ else
 fi
 
 echo ""
-echo "Step 3: Encrypting and storing secrets with systemd-creds..."
+echo "Step 3: Installing secrets for NixOS configuration..."
 
-# Ensure credential directory exists
-mkdir -p "$CREDS_DIR"
-chmod 700 "$CREDS_DIR"
+# Create secret directories
+mkdir -p /tmp/nixos-secrets || {
+  echo "ERROR: Failed to create /tmp/nixos-secrets"
+  exit 1
+}
+mkdir -p /tmp/nixos-passwords || {
+  echo "ERROR: Failed to create /tmp/nixos-passwords"
+  exit 1
+}
 
-# Encrypt and store each secret using systemd-creds
-echo "Encrypting rclone configs..."
-systemd-creds encrypt --name=drew-rclone /tmp/drew-rclone.conf "$CREDS_DIR/drew-rclone.cred" || exit 1
-systemd-creds encrypt --name=emily-rclone /tmp/emily-rclone.conf "$CREDS_DIR/emily-rclone.cred" || exit 1
-systemd-creds encrypt --name=bella-rclone /tmp/bella-rclone.conf "$CREDS_DIR/bella-rclone.cred" || exit 1
+# Copy rclone configs
+echo "Installing rclone configs..."
+cp /tmp/drew-rclone.conf /tmp/nixos-secrets/drew-rclone.conf || exit 1
+cp /tmp/emily-rclone.conf /tmp/nixos-secrets/emily-rclone.conf || exit 1
+cp /tmp/bella-rclone.conf /tmp/nixos-secrets/bella-rclone.conf || exit 1
 
-echo "Encrypting SSH keys..."
-systemd-creds encrypt --name=drew-ssh-keys /tmp/drew-ssh-keys "$CREDS_DIR/drew-ssh-keys.cred" || exit 1
-systemd-creds encrypt --name=emily-ssh-keys /tmp/emily-ssh-keys "$CREDS_DIR/emily-ssh-keys.cred" || exit 1
-systemd-creds encrypt --name=bella-ssh-keys /tmp/bella-ssh-keys "$CREDS_DIR/bella-ssh-keys.cred" || exit 1
+# Copy SSH keys
+echo "Installing SSH keys..."
+cp /tmp/drew-ssh-keys /tmp/nixos-secrets/drew-ssh-authorized-keys || exit 1
+cp /tmp/emily-ssh-keys /tmp/nixos-secrets/emily-ssh-authorized-keys || exit 1
+cp /tmp/bella-ssh-keys /tmp/nixos-secrets/bella-ssh-authorized-keys || exit 1
 
-echo "Encrypting user passwords..."
-systemd-creds encrypt --name=drew-password /tmp/drew-password "$CREDS_DIR/drew-password.cred" || exit 1
-systemd-creds encrypt --name=emily-password /tmp/emily-password "$CREDS_DIR/emily-password.cred" || exit 1
-systemd-creds encrypt --name=bella-password /tmp/bella-password "$CREDS_DIR/bella-password.cred" || exit 1
+# Save passwords for later (after users are created)
+echo "Saving passwords..."
+cp /tmp/drew-password /tmp/nixos-passwords/ || exit 1
+cp /tmp/emily-password /tmp/nixos-passwords/ || exit 1
+cp /tmp/bella-password /tmp/nixos-passwords/ || exit 1
 
-echo "Encrypting WiFi credentials..."
-systemd-creds encrypt --name=wifi-ssid /tmp/wifi-ssid "$CREDS_DIR/wifi-ssid.cred" || exit 1
-systemd-creds encrypt --name=wifi-password /tmp/wifi-password "$CREDS_DIR/wifi-password.cred" || exit 1
+# Create WiFi environment file
+echo "Creating WiFi configuration..."
+echo "WIFI_SSID=$(cat /tmp/wifi-ssid)" > /tmp/nixos-secrets/wifi-env || exit 1
+echo "WIFI_PASSWORD=$(cat /tmp/wifi-password)" >> /tmp/nixos-secrets/wifi-env || exit 1
+chmod 600 /tmp/nixos-secrets/wifi-env || exit 1
 
-# Set secure permissions on encrypted credentials
-chmod 600 "$CREDS_DIR"/*.cred
+# Set permissions
+echo "Setting file permissions..."
+chmod 600 /tmp/nixos-secrets/*-rclone.conf || exit 1
+chmod 644 /tmp/nixos-secrets/*-ssh-authorized-keys || exit 1
+chmod 600 /tmp/nixos-passwords/* || exit 1
 
-echo "✓ All secrets encrypted and stored in $CREDS_DIR"
+# Verify secrets directory
+echo "Verifying secrets installation..."
+[ -f "/tmp/nixos-secrets/drew-rclone.conf" ] || { echo "ERROR: drew-rclone.conf missing"; exit 1; }
+[ -f "/tmp/nixos-secrets/drew-ssh-authorized-keys" ] || { echo "ERROR: drew SSH keys missing"; exit 1; }
+[ -f "/tmp/nixos-secrets/wifi-env" ] || { echo "ERROR: wifi-env missing"; exit 1; }
+echo "✓ All secrets installed to /tmp/nixos-secrets"
 
-# Clean up ALL temp files containing secrets
-echo "Securely cleaning up temporary files..."
-shred -u /tmp/drew-rclone.conf /tmp/emily-rclone.conf /tmp/bella-rclone.conf 2>/dev/null || true
-shred -u /tmp/drew-ssh-keys /tmp/emily-ssh-keys /tmp/bella-ssh-keys 2>/dev/null || true
-shred -u /tmp/drew-password /tmp/emily-password /tmp/bella-password 2>/dev/null || true
-shred -u /tmp/wifi-ssid /tmp/wifi-password 2>/dev/null || true
+# Clean up temp files from Key Vault
+echo "Cleaning up temporary files..."
+rm -f /tmp/drew-rclone.conf /tmp/emily-rclone.conf /tmp/bella-rclone.conf
 rm -f /tmp/drew-ssh-keys /tmp/emily-ssh-keys /tmp/bella-ssh-keys
 rm -f /tmp/drew-password /tmp/emily-password /tmp/bella-password
 rm -f /tmp/wifi-ssid /tmp/wifi-password
@@ -263,6 +278,17 @@ echo "✓ Machine configuration ready for $HOSTNAME"
 echo ""
 echo "Step 5: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
+
+# Copy secrets to /etc/nixos for the build
+echo "Copying secrets for NixOS build..."
+mkdir -p /etc/nixos/secrets || {
+  echo "ERROR: Failed to create /etc/nixos/secrets"
+  exit 1
+}
+cp -r /tmp/nixos-secrets/* /etc/nixos/secrets/ || {
+  echo "ERROR: Failed to copy secrets to /etc/nixos/secrets"
+  exit 1
+}
 
 echo "Building NixOS configuration..."
 echo "This may take 10-30 minutes depending on internet speed..."
@@ -297,20 +323,29 @@ for user in drew emily bella; do
 done
 echo "✓ All users exist"
 
-# Decrypt and set passwords from systemd-creds
-echo "Setting passwords from encrypted credentials..."
-DREW_PASS=$(systemd-creds decrypt "$CREDS_DIR/drew-password.cred" -) || { echo "ERROR: Failed to decrypt Drew's password"; exit 1; }
-EMILY_PASS=$(systemd-creds decrypt "$CREDS_DIR/emily-password.cred" -) || { echo "ERROR: Failed to decrypt Emily's password"; exit 1; }
-BELLA_PASS=$(systemd-creds decrypt "$CREDS_DIR/bella-password.cred" -) || { echo "ERROR: Failed to decrypt Bella's password"; exit 1; }
+# Now that users exist, set their passwords
+echo "Setting passwords..."
+if ! echo "drew:$(cat /tmp/nixos-passwords/drew-password)" | chpasswd; then
+  echo "ERROR: Failed to set Drew's password"
+  exit 1
+fi
 
-echo "drew:$DREW_PASS" | chpasswd || { echo "ERROR: Failed to set Drew's password"; exit 1; }
-echo "emily:$EMILY_PASS" | chpasswd || { echo "ERROR: Failed to set Emily's password"; exit 1; }
-echo "bella:$BELLA_PASS" | chpasswd || { echo "ERROR: Failed to set Bella's password"; exit 1; }
+if ! echo "emily:$(cat /tmp/nixos-passwords/emily-password)" | chpasswd; then
+  echo "ERROR: Failed to set Emily's password"
+  exit 1
+fi
 
-# Clear password variables
-unset DREW_PASS EMILY_PASS BELLA_PASS
+if ! echo "bella:$(cat /tmp/nixos-passwords/bella-password)" | chpasswd; then
+  echo "ERROR: Failed to set Bella's password"
+  exit 1
+fi
 
 echo "✓ Passwords set for all users"
+
+# Clean up password files securely
+echo "Cleaning up sensitive files..."
+shred -u /tmp/nixos-passwords/* 2>/dev/null || rm -f /tmp/nixos-passwords/*
+rmdir /tmp/nixos-passwords 2>/dev/null || true
 
 echo ""
 echo "========================================"
