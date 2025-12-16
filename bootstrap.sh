@@ -275,7 +275,15 @@ EOF
 fi
 
 echo ""
-echo "Step 7: Applying NixOS configuration..."
+echo "Step 7: Generating hardware configuration..."
+nixos-generate-config --show-hardware-config > hardware-configuration.nix || {
+  echo "ERROR: Failed to generate hardware configuration"
+  exit 1
+}
+echo "✓ Hardware configuration generated"
+
+echo ""
+echo "Step 8: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
 
 # Copy secrets to /etc/nixos for the build
