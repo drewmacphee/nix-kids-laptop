@@ -6,6 +6,9 @@
     ./hardware-configuration.nix
   ];
 
+  # Allow unfree packages (Chrome, Steam, etc.)
+  nixpkgs.config.allowUnfree = true;
+
   # Bootloader
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
