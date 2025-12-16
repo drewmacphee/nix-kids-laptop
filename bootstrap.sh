@@ -279,7 +279,7 @@ fi
 echo "✓ Hardware configuration ready"
 
 echo ""
-echo "Step 6: Applying NixOS configuration..."
+echo "Step 8: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
 
 # Copy secrets to /etc/nixos for the build
