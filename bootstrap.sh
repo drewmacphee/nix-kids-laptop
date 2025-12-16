@@ -296,6 +296,13 @@ cp -r /tmp/nixos-secrets/* /etc/nixos/secrets/ || {
 echo "Building NixOS configuration..."
 echo "This may take 10-30 minutes depending on internet speed..."
 
+# Add hardware-configuration.nix to git so flake can see it
+echo "Adding hardware-configuration.nix to git working tree..."
+git add -f hardware-configuration.nix || {
+  echo "ERROR: Failed to add hardware-configuration.nix"
+  exit 1
+}
+
 if ! sudo nixos-rebuild switch --flake .#kids-laptop; then
   echo ""
   echo "ERROR: nixos-rebuild failed!"
