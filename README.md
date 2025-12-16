@@ -35,7 +35,7 @@ A fully portable NixOS configuration for multiple machines with remote administr
 
 2. **Run Bootstrap Script**
    ```bash
-   curl -L https://raw.githubusercontent.com/drewmacphee/nix-kids-laptop/main/bootstrap.sh | sudo bash
+   curl -L https://raw.githubusercontent.com/drewmacphee/nix-systems/main/bootstrap.sh | sudo bash
    ```
    
    - Select a machine from the menu (bazztop or new machine)
