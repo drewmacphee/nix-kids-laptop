@@ -1,6 +1,6 @@
 # Kids Laptop NixOS Configuration
 
-A fully portable NixOS configuration for children's laptops with remote administration, Azure Key Vault secret management, and OneDrive file sync.
+A fully portable NixOS configuration for multiple machines with remote administration, Azure Key Vault secret management, and OneDrive file sync.
 
 ## Features
 
@@ -10,6 +10,13 @@ A fully portable NixOS configuration for children's laptops with remote administ
 - 🔧 **Remote Admin**: VS Code Remote SSH + full sudo access for Drew
 - 📦 **Declarative**: Entire system in version control
 - 🔄 **One-Command Restore**: `curl | bash` from fresh NixOS install
+- 🖥️ **Multi-Machine**: Support for multiple machines with shared config
+
+## Multi-Machine Structure
+
+- `hosts/common/` - Shared configuration for all machines
+- `hosts/bazztop/` - Configuration for the bazztop laptop
+- `hosts/*/hardware-configuration.nix` - Machine-specific hardware (auto-generated)
 
 ## Users
 
@@ -30,8 +37,8 @@ A fully portable NixOS configuration for children's laptops with remote administ
    curl -L https://raw.githubusercontent.com/drewmacphee/nix-kids-laptop/main/bootstrap.sh | sudo bash
    ```
    
-   - Enter a hostname when prompted (e.g., `bazztop`, `emily-laptop`)
-   - The script works for any machine using this configuration
+   - Select a machine from the menu (bazztop or new machine)
+   - For new machines, enter a hostname and update flake.nix later
 
 3. **Login with Microsoft Account**
    - Follow the device code prompt
@@ -45,6 +52,29 @@ A fully portable NixOS configuration for children's laptops with remote administ
    ```
 
 Done! OneDrive will sync on first login.
+
+## Adding a New Machine
+
+1. Create `hosts/newmachine/default.nix`:
+   ```nix
+   { config, pkgs, ... }:
+   {
+     imports = [ ./hardware-configuration.nix ../common ];
+     networking.hostName = "newmachine";
+   }
+   ```
+
+2. Add placeholder `hosts/newmachine/hardware-configuration.nix`
+
+3. Update `flake.nix`:
+   ```nix
+   nixosConfigurations = {
+     bazztop = mkSystem "bazztop";
+     newmachine = mkSystem "newmachine";  # Add this
+   };
+   ```
+
+4. Commit, push, and run bootstrap on new machine
 
 ## Documentation
 
