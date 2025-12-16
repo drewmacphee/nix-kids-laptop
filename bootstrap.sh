@@ -135,7 +135,7 @@ echo '✓ All secrets retrieved successfully!'
 AZURE_LOGIN
 
 echo ""
-echo "Step 5: Cloning configuration repository..."
+echo "Step 2: Cloning configuration repository..."
 
 # Clean slate approach - backup existing config
 if [ -d "/etc/nixos" ] && [ "$(ls -A /etc/nixos)" ]; then
@@ -175,7 +175,7 @@ else
 fi
 
 echo ""
-echo "Step 5: Installing secrets for NixOS configuration..."
+echo "Step 3: Installing secrets for NixOS configuration..."
 
 # Create secret directories
 mkdir -p /tmp/nixos-secrets || {
@@ -232,7 +232,7 @@ rm -f /tmp/drew-password /tmp/emily-password /tmp/bella-password
 rm -f /tmp/wifi-ssid /tmp/wifi-password
 
 echo ""
-echo "Step 6: Creating hostname configuration..."
+echo "Step 4: Creating hostname configuration..."
 
 cd /etc/nixos || {
   echo "ERROR: Cannot change to /etc/nixos directory"
@@ -275,7 +275,7 @@ EOF
 fi
 
 echo ""
-echo "Step 7: Generating hardware configuration..."
+echo "Step 5: Generating hardware configuration..."
 nixos-generate-config --show-hardware-config > hardware-configuration.nix || {
   echo "ERROR: Failed to generate hardware configuration"
   exit 1
@@ -283,7 +283,7 @@ nixos-generate-config --show-hardware-config > hardware-configuration.nix || {
 echo "✓ Hardware configuration generated"
 
 echo ""
-echo "Step 8: Applying NixOS configuration..."
+echo "Step 6: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
 
 # Copy secrets to /etc/nixos for the build
@@ -312,7 +312,7 @@ fi
 echo "✓ NixOS configuration applied successfully"
 
 echo ""
-echo "Step 8: Setting user passwords..."
+echo "Step 7: Setting user passwords..."
 
 # Verify users were created
 for user in drew emily bella; do
