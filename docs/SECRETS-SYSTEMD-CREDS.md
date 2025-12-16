@@ -34,7 +34,7 @@ When you run the bootstrap script:
    - Binds to TPM 2.0 chip (if available) or system-specific key
   - Stored in `/etc/credstore.encrypted/*.cred`
    - Cannot be decrypted on different hardware
-  - Uses the host secret at `/var/lib/systemd/credential.secret`
+  - Uses the host secret at `/var/lib/systemd/credential.secret` (created via `systemd-creds setup`)
 4. **Cleanup**: Original plaintext secrets are securely deleted with `shred`
 
 ### 2. Boot Phase (Every restart)
@@ -186,7 +186,14 @@ echo "drew:$DREW_PASS" | chpasswd
 ### View Encrypted Credential
 
 ```bash
-sudo ls -lh /var/lib/systemd/credential.secret/
+sudo ls -lh /etc/credstore.encrypted
+```
+
+### Ensure Host Credential Secret Exists
+
+```bash
+sudo systemd-creds setup
+sudo ls -lh /var/lib/systemd/credential.secret
 ```
 
 ### Decrypt Credential Manually
@@ -248,7 +255,7 @@ sudo journalctl -u decrypt-drew-rclone
 
 **Verify credential exists**:
 ```bash
-sudo ls -l /var/lib/systemd/credential.secret/drew-rclone.cred
+sudo ls -l /etc/credstore.encrypted/drew-rclone.cred
 ```
 
 ### Permission denied errors

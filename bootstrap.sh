@@ -203,6 +203,19 @@ fi
 echo ""
 echo "Step 3: Encrypting and storing secrets with systemd-creds..."
 
+encrypt_credential() {
+  local name="$1"
+  local input="$2"
+  local output="$3"
+
+  # Prefer TPM/hardware binding if available, but fall back to host key for reliability.
+  if systemd-creds encrypt --with-key=auto --name="$name" "$input" "$output"; then
+    return 0
+  fi
+  echo "WARN: systemd-creds --with-key=auto failed; retrying with --with-key=host" >&2
+  systemd-creds encrypt --with-key=host --name="$name" "$input" "$output"
+}
+
 # Ensure the host secret is a file (a previous buggy run may have created it as a directory)
 if [ -d "$HOST_SECRET_FILE" ]; then
   if [ -z "$(ls -A "$HOST_SECRET_FILE" 2>/dev/null || true)" ]; then
@@ -214,12 +227,15 @@ if [ -d "$HOST_SECRET_FILE" ]; then
   fi
 fi
 
+echo "Ensuring systemd credential host secret exists..."
+if ! systemd-creds setup; then
+  echo "ERROR: systemd-creds setup failed; cannot initialize host credential secret."
+  exit 1
+fi
+
 if [ ! -f "$HOST_SECRET_FILE" ]; then
-  echo "Creating systemd credential host secret at $HOST_SECRET_FILE..."
-  install -d -m 0755 "$(dirname "$HOST_SECRET_FILE")"
-  umask 077
-  head -c 32 /dev/urandom > "$HOST_SECRET_FILE"
-  chmod 600 "$HOST_SECRET_FILE"
+  echo "ERROR: Expected host secret at $HOST_SECRET_FILE after setup, but it was not found."
+  exit 1
 fi
 
 # Ensure credential directory exists
@@ -228,23 +244,23 @@ chmod 700 "$CREDS_DIR"
 
 # Encrypt and store each secret using systemd-creds
 echo "Encrypting rclone configs..."
-systemd-creds encrypt --name=drew-rclone /tmp/drew-rclone.conf "$CREDS_DIR/drew-rclone.cred" || exit 1
-systemd-creds encrypt --name=emily-rclone /tmp/emily-rclone.conf "$CREDS_DIR/emily-rclone.cred" || exit 1
-systemd-creds encrypt --name=bella-rclone /tmp/bella-rclone.conf "$CREDS_DIR/bella-rclone.cred" || exit 1
+encrypt_credential drew-rclone /tmp/drew-rclone.conf "$CREDS_DIR/drew-rclone.cred" || exit 1
+encrypt_credential emily-rclone /tmp/emily-rclone.conf "$CREDS_DIR/emily-rclone.cred" || exit 1
+encrypt_credential bella-rclone /tmp/bella-rclone.conf "$CREDS_DIR/bella-rclone.cred" || exit 1
 
 echo "Encrypting SSH keys..."
-systemd-creds encrypt --name=drew-ssh-authorized-keys /tmp/drew-ssh-keys "$CREDS_DIR/drew-ssh-authorized-keys.cred" || exit 1
-systemd-creds encrypt --name=emily-ssh-authorized-keys /tmp/emily-ssh-keys "$CREDS_DIR/emily-ssh-authorized-keys.cred" || exit 1
-systemd-creds encrypt --name=bella-ssh-authorized-keys /tmp/bella-ssh-keys "$CREDS_DIR/bella-ssh-authorized-keys.cred" || exit 1
+encrypt_credential drew-ssh-authorized-keys /tmp/drew-ssh-keys "$CREDS_DIR/drew-ssh-authorized-keys.cred" || exit 1
+encrypt_credential emily-ssh-authorized-keys /tmp/emily-ssh-keys "$CREDS_DIR/emily-ssh-authorized-keys.cred" || exit 1
+encrypt_credential bella-ssh-authorized-keys /tmp/bella-ssh-keys "$CREDS_DIR/bella-ssh-authorized-keys.cred" || exit 1
 
 echo "Encrypting user passwords..."
-systemd-creds encrypt --name=drew-password /tmp/drew-password "$CREDS_DIR/drew-password.cred" || exit 1
-systemd-creds encrypt --name=emily-password /tmp/emily-password "$CREDS_DIR/emily-password.cred" || exit 1
-systemd-creds encrypt --name=bella-password /tmp/bella-password "$CREDS_DIR/bella-password.cred" || exit 1
+encrypt_credential drew-password /tmp/drew-password "$CREDS_DIR/drew-password.cred" || exit 1
+encrypt_credential emily-password /tmp/emily-password "$CREDS_DIR/emily-password.cred" || exit 1
+encrypt_credential bella-password /tmp/bella-password "$CREDS_DIR/bella-password.cred" || exit 1
 
 echo "Encrypting WiFi credentials..."
-systemd-creds encrypt --name=wifi-ssid /tmp/wifi-ssid "$CREDS_DIR/wifi-ssid.cred" || exit 1
-systemd-creds encrypt --name=wifi-password /tmp/wifi-password "$CREDS_DIR/wifi-password.cred" || exit 1
+encrypt_credential wifi-ssid /tmp/wifi-ssid "$CREDS_DIR/wifi-ssid.cred" || exit 1
+encrypt_credential wifi-password /tmp/wifi-password "$CREDS_DIR/wifi-password.cred" || exit 1
 
 # Set secure permissions on encrypted credentials
 chmod 600 "$CREDS_DIR"/*.cred
