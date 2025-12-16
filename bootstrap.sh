@@ -430,12 +430,18 @@ echo "This will take several minutes (downloading packages)..."
 echo "Building NixOS configuration..."
 echo "This may take 10-30 minutes depending on internet speed..."
 
-# Add hardware-configuration.nix to git so flake can see it
-echo "Adding hardware-configuration.nix to git working tree..."
-git add -f hosts/$HOSTNAME/hardware-configuration.nix || {
-  echo "ERROR: Failed to add hardware-configuration.nix"
-  exit 1
-}
+# Add hardware-configuration.nix and patched configuration.nix to git
+echo "Committing configuration changes to git..."
+git add -f hosts/$HOSTNAME/hardware-configuration.nix
+git add hosts/$HOSTNAME/configuration.nix
+
+# Configure dummy git identity for the commit if needed
+if [ -z "$(git config user.name)" ]; then
+  git config user.name "Bootstrap Script"
+  git config user.email "root@localhost"
+fi
+
+git commit -m "Bootstrap: Auto-generated hardware-config and bootloader settings" || echo "Nothing to commit"
 
 if ! sudo nixos-rebuild switch --flake .#$HOSTNAME; then
   echo ""
