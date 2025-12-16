@@ -55,7 +55,7 @@ EOF
       # Create helpful README
       $DRY_RUN_CMD cat > ${config.home.homeDirectory}/OneDrive/Minecraft/README.txt << 'EOF'
 Minecraft Data for ${config.home.username}
-${"=" * (23 + builtins.stringLength config.home.username)}
+============================================
 
 This folder contains your Minecraft game data and syncs to OneDrive.
 
