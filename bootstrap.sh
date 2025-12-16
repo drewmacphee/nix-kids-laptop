@@ -275,12 +275,20 @@ EOF
 fi
 
 echo ""
-echo "Step 5: Generating hardware configuration..."
-nixos-generate-config --show-hardware-config > hardware-configuration.nix || {
-  echo "ERROR: Failed to generate hardware configuration"
-  exit 1
-}
-echo "✓ Hardware configuration generated"
+echo "Step 5: Preserving hardware configuration..."
+# The existing /etc/nixos/hardware-configuration.nix should already be there from the original NixOS install
+# We just need to make sure our cloned repo doesn't overwrite it
+if [ ! -f hardware-configuration.nix ]; then
+  echo "WARNING: No hardware-configuration.nix found in /etc/nixos!"
+  echo "Generating a new one..."
+  nixos-generate-config --show-hardware-config > hardware-configuration.nix || {
+    echo "ERROR: Failed to generate hardware configuration"
+    exit 1
+  }
+  echo "✓ Hardware configuration generated"
+else
+  echo "✓ Using existing hardware-configuration.nix from NixOS installation"
+fi
 
 echo ""
 echo "Step 6: Applying NixOS configuration..."
