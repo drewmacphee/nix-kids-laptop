@@ -141,6 +141,7 @@
     curl
     git
     htop
+    gawk
     azure-cli
     rclone
     
@@ -165,12 +166,19 @@
     for user in drew emily bella; do
       user_home=$(eval echo ~$user)
       if [ -d "$user_home" ]; then
-        mkdir -p "$user_home/.config/rclone"
+        # IMPORTANT: create ~/.config as the user, not root.
+        # (root-owned ~/.config breaks Home Manager, e.g. ~/.config/environment.d)
+        install -d -m 0700 -o $user -g users "$user_home/.config"
+        install -d -m 0700 -o $user -g users "$user_home/.config/rclone"
+
         if [ -f "/etc/nixos/secrets/$user-rclone.conf" ]; then
-          cp /etc/nixos/secrets/$user-rclone.conf "$user_home/.config/rclone/rclone.conf"
-          chown -R $user:users "$user_home/.config/rclone"
-          chmod 600 "$user_home/.config/rclone/rclone.conf"
+          install -m 0600 -o $user -g users \
+            "/etc/nixos/secrets/$user-rclone.conf" \
+            "$user_home/.config/rclone/rclone.conf"
         fi
+
+        # Repair any previous runs that created ~/.config as root.
+        chown $user:users "$user_home/.config" 2>/dev/null || true
       fi
     done
     

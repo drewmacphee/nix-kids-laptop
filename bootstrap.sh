@@ -306,6 +306,123 @@ fi
 echo "✓ Machine configuration ready for $HOSTNAME"
 
 echo ""
+echo "Step 4.5: Bootloader preflight..."
+
+HOST_CONFIG_FILE="/etc/nixos/hosts/$HOSTNAME/configuration.nix"
+HOST_HW_FILE="/etc/nixos/hosts/$HOSTNAME/hardware-configuration.nix"
+
+detect_root_disk() {
+  local root_src pk
+  root_src=$(findmnt -no SOURCE / 2>/dev/null || true)
+  if [ -z "$root_src" ]; then
+    echo ""
+    return 0
+  fi
+
+  if command -v lsblk >/dev/null 2>&1; then
+    pk=$(lsblk -no PKNAME "$root_src" 2>/dev/null || true)
+    if [ -n "$pk" ]; then
+      echo "/dev/$pk"
+      return 0
+    fi
+  fi
+
+  case "$root_src" in
+    /dev/nvme*n*p*) echo "${root_src%p*}" ;;
+    /dev/sd[a-z][0-9]*) echo "${root_src%[0-9]*}" ;;
+    /dev/vd[a-z][0-9]*) echo "${root_src%[0-9]*}" ;;
+    *) echo "" ;;
+  esac
+}
+
+patch_for_bios_grub() {
+  local disk
+  disk=$(detect_root_disk)
+  if [ -z "$disk" ]; then
+    disk="/dev/sda"
+    echo "WARN: Could not detect install disk for GRUB; defaulting to $disk" >&2
+  fi
+
+  # Disable systemd-boot/UEFI knobs if present
+  sed -i \
+    -e 's/^\s*boot\.loader\.systemd-boot\.enable\s*=\s*true\s*;\s*$/  boot.loader.systemd-boot.enable = false;/' \
+    -e 's/^\s*boot\.loader\.efi\.canTouchEfiVariables\s*=\s*true\s*;\s*$/  boot.loader.efi.canTouchEfiVariables = false;/' \
+    "$HOST_CONFIG_FILE" || true
+
+  # Ensure GRUB is enabled for BIOS installs
+  if ! grep -qE '^\s*boot\.loader\.grub\.enable\s*=\s*true\s*;' "$HOST_CONFIG_FILE"; then
+    cat >>"$HOST_CONFIG_FILE" <<EOF
+
+  # Added by bootstrap (legacy BIOS install)
+  boot.loader.systemd-boot.enable = false;
+  boot.loader.efi.canTouchEfiVariables = false;
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "${disk}";
+EOF
+  else
+    # Update grub device if already present
+    if grep -qE '^\s*boot\.loader\.grub\.device\s*=\s*"[^"]+"\s*;' "$HOST_CONFIG_FILE"; then
+      sed -i -E "s|^\s*boot\.loader\.grub\.device\s*=\s*\"[^\"]+\"\s*;\s*$|  boot.loader.grub.device = \"${disk}\";|" "$HOST_CONFIG_FILE" || true
+    else
+      printf '\n  boot.loader.grub.device = "%s";\n' "$disk" >>"$HOST_CONFIG_FILE"
+    fi
+  fi
+}
+
+patch_for_uefi_systemd_boot() {
+  # Ensure an ESP is mounted before installing systemd-boot.
+  local esp=""
+
+  if mountpoint -q /boot/efi; then
+    esp="/boot/efi"
+  elif mountpoint -q /boot; then
+    esp="/boot"
+  elif [ -f "$HOST_HW_FILE" ] && grep -q 'fileSystems\."/boot/efi"' "$HOST_HW_FILE"; then
+    mkdir -p /boot/efi
+    mount /boot/efi 2>/dev/null || true
+    mountpoint -q /boot/efi && esp="/boot/efi"
+  elif [ -f "$HOST_HW_FILE" ] && grep -q 'fileSystems\."/boot"' "$HOST_HW_FILE"; then
+    mkdir -p /boot
+    mount /boot 2>/dev/null || true
+    mountpoint -q /boot && esp="/boot"
+  fi
+
+  if [ -z "$esp" ]; then
+    echo "ERROR: UEFI system detected but no EFI System Partition is mounted at /boot or /boot/efi."
+    echo "Fix by mounting your ESP, then re-run: sudo nixos-rebuild switch --flake .#$HOSTNAME"
+    exit 1
+  fi
+
+  # Ensure systemd-boot is enabled and GRUB is disabled.
+  sed -i \
+    -e 's/^\s*boot\.loader\.systemd-boot\.enable\s*=\s*false\s*;\s*$/  boot.loader.systemd-boot.enable = true;/' \
+    -e 's/^\s*boot\.loader\.efi\.canTouchEfiVariables\s*=\s*false\s*;\s*$/  boot.loader.efi.canTouchEfiVariables = true;/' \
+    "$HOST_CONFIG_FILE" || true
+
+  if ! grep -qE '^\s*boot\.loader\.systemd-boot\.enable\s*=\s*true\s*;' "$HOST_CONFIG_FILE"; then
+    cat >>"$HOST_CONFIG_FILE" <<EOF
+
+  # Added by bootstrap (UEFI install)
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+EOF
+  fi
+}
+
+if [ ! -f "$HOST_CONFIG_FILE" ]; then
+  echo "ERROR: Host configuration not found at $HOST_CONFIG_FILE"
+  exit 1
+fi
+
+if [ -d /sys/firmware/efi ]; then
+  echo "Detected UEFI boot"
+  patch_for_uefi_systemd_boot
+else
+  echo "Detected legacy BIOS boot"
+  patch_for_bios_grub
+fi
+
+echo ""
 echo "Step 5: Applying NixOS configuration..."
 echo "This will take several minutes (downloading packages)..."
 
