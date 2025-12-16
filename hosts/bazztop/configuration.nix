@@ -106,21 +106,21 @@
     isNormalUser = true;
     description = "Drew (Admin)";
     extraGroups = [ "networkmanager" "wheel" ];
-    openssh.authorizedKeys.keyFiles = [ "/etc/nixos/secrets/drew-ssh-authorized-keys" ];
+    openssh.authorizedKeys.keyFiles = [ ./secrets/drew-ssh-authorized-keys ];
   };
 
   users.users.emily = {
     isNormalUser = true;
     description = "Emily";
     extraGroups = [ "networkmanager" ];
-    openssh.authorizedKeys.keyFiles = [ "/etc/nixos/secrets/emily-ssh-authorized-keys" ];
+    openssh.authorizedKeys.keyFiles = [ ./secrets/emily-ssh-authorized-keys ];
   };
 
   users.users.bella = {
     isNormalUser = true;
     description = "Bella";
     extraGroups = [ "networkmanager" ];
-    openssh.authorizedKeys.keyFiles = [ "/etc/nixos/secrets/bella-ssh-authorized-keys" ];
+    openssh.authorizedKeys.keyFiles = [ ./secrets/bella-ssh-authorized-keys ];
   };
 
   # Allow sudo for wheel group
