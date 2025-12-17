@@ -19,6 +19,8 @@
         specialArgs = { inherit inputs; };
         modules = [
           ./hosts/${hostname}/configuration.nix
+          # Set the hostname
+          { networking.hostName = hostname; }
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
