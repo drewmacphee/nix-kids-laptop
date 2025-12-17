@@ -3,9 +3,18 @@
 {
   # Base packages for all users
   home.packages = with pkgs; [
-    google-chrome
     vlc
     libreoffice
     gimp
   ];
+  
+  # Google Chrome with proper configuration
+  programs.chromium = {
+    enable = true;
+    package = pkgs.google-chrome;
+    commandLineArgs = [
+      "--enable-features=VaapiVideoDecoder"
+      "--enable-gpu-rasterization"
+    ];
+  };
 }
