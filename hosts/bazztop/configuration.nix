@@ -159,7 +159,6 @@
     
     # Gaming and applications for all users
     prismlauncher
-    google-chrome
     vscode
     protonup-qt
   ];
