@@ -74,9 +74,10 @@
   };
   
   # GPU acceleration fixes
-  hardware.graphics = {
+  hardware.opengl = {
     enable = true;
-    enable32Bit = true;
+    driSupport = true;
+    driSupport32Bit = true;
   };
 
   # Enable sound
