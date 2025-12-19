@@ -11,12 +11,18 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, ... }@inputs:
     let
       # Helper function to create a system configuration
       mkSystem = hostname: nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = { 
+          inherit inputs;
+          pkgs-unstable = import nixpkgs-unstable {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+          };
+        };
         modules = [
           ./hosts/${hostname}/configuration.nix
           # Set the hostname
@@ -27,7 +33,13 @@
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "hm-backup";
             # Allow home-manager to overwrite existing files
-            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.extraSpecialArgs = { 
+              inherit inputs;
+              pkgs-unstable = import nixpkgs-unstable {
+                system = "x86_64-linux";
+                config.allowUnfree = true;
+              };
+            };
             home-manager.users.drew = import ./home/drew.nix;
             home-manager.users.emily = import ./home/emily.nix;
             home-manager.users.bella = import ./home/bella.nix;
