@@ -67,6 +67,17 @@
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
+  
+  # Chrome workarounds for crashes
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";  # Enable Wayland support
+  };
+  
+  # GPU acceleration fixes
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
 
   # Enable sound
   sound.enable = true;
